@@ -53,7 +53,26 @@ app.get('/api/movies', asyncRoute(async (req,res) => {
   if (genre && genres.includes(genre)) filter.genre = genre;
   if (search.trim()) filter.title = { $regex: search.trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), $options:'i' };
   const totalMovies = await Movie.countDocuments(filter);
-  const movies = await Movie.find(filter).sort({status:1,priority:-1,runtime:1,createdAt:-1}).skip((page-1)*limit).limit(limit);
+   const movies = await Movie.aggregate([
+  { $match: filter },
+  {
+    $addFields: {
+      statusOrder: {
+        $switch: {
+          branches: [
+            { case: { $eq: ['$status', 'To Watch'] }, then: 0 },
+            { case: { $eq: ['$status', 'Watching'] }, then: 1 },
+            { case: { $eq: ['$status', 'Watched'] }, then: 2 }
+          ],
+          default: 3
+        }
+      }
+    }
+  },
+  { $sort: { statusOrder: 1, priority: -1, runtime: 1, createdAt: -1 } },
+  { $skip: (page - 1) * limit },
+  { $limit: limit }
+]);
   send(res,200,true,'Movies fetched successfully.',{movies,page,totalPages:Math.ceil(totalMovies/limit),totalMovies});
 }));
 
