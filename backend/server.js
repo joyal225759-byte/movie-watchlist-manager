@@ -7,7 +7,14 @@ import Sequence from './models/Sequence.js';
 
 dotenv.config();
 const app = express();
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://movie-watchlist-manager-1-jz54.onrender.com'
+];
+
+app.use(cors({
+  origin: allowedOrigins
+}));
 app.use(express.json());
 
 const send = (res, status, success, message, data = null) => res.status(status).json({ success, message, data });
